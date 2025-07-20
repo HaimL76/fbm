@@ -84,26 +84,27 @@ def create_covariance_matrix(hurst: float, times: list[float]):
     return rows
 
 
-def create_standard_gaussian_vector(n: int):
-    now = datetime.now()
-    ts = int(now.timestamp())
-    np.random.seed(ts)
+def create_standard_gaussian_vector(n: int, set_seed: bool = False):
+    if set_seed:
+        now = datetime.now()
+        ts = int(now.timestamp())
+        np.random.seed(ts)
 
     standard_gaussian_vector: list[float] = [0] * n
 
     for index in range(n):
-        standard_gaussian_vector[index] = np.random.normal(0, 1, 1)
+        standard_gaussian_vector[index] = np.random.normal(0, 0.0001, 1)
 
     return standard_gaussian_vector
 
 
-def main(n: int, num_paths: int = 1):
+def main(hurst: float, n: int, num_paths: int = 1):
     t_range: float = 10
 
     t_delta: float = t_range / n
 
     times: list[float] = [t_delta * (i + 1) for i in range(n)]
-    rows: list[list[float]] = create_covariance_matrix(0.23, times)
+    rows: list[list[float]] = create_covariance_matrix(hurst=hurst, times=times)
 
     rows = cholesky(rows)
 
@@ -116,7 +117,7 @@ def main(n: int, num_paths: int = 1):
     u_arr: list = [[]] * num_paths
 
     for index in range(num_paths):
-        standard_gaussian_vector: list[float] = create_standard_gaussian_vector(n)
+        standard_gaussian_vector: list[float] = create_standard_gaussian_vector(n, index < 1)
 
         v = np.array(standard_gaussian_vector)
 
@@ -146,4 +147,4 @@ def main(n: int, num_paths: int = 1):
     _ = 0
 
 
-main(400, 22)
+main(0.5, 1000, 22)
