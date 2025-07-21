@@ -84,12 +84,7 @@ def create_covariance_matrix(hurst: float, times: list[float]):
     return rows
 
 
-def create_standard_gaussian_vector(n: int, set_seed: bool = False):
-    if set_seed:
-        now = datetime.now()
-        ts = int(now.timestamp())
-        np.random.seed(ts)
-
+def create_standard_gaussian_vector(n: int):
     standard_gaussian_vector: list[float] = [0] * n
 
     for index in range(n):
@@ -98,7 +93,7 @@ def create_standard_gaussian_vector(n: int, set_seed: bool = False):
     return standard_gaussian_vector
 
 
-def main(hurst: float, n: int, num_paths: int = 1):
+def calculate_fbm(hurst: float, n: int, num_paths: int = 1, cholesky_rows = None):
     t_range: float = 10
 
     t_delta: float = t_range / n
@@ -106,9 +101,10 @@ def main(hurst: float, n: int, num_paths: int = 1):
     times: list[float] = [t_delta * (i + 1) for i in range(n)]
     rows: list[list[float]] = create_covariance_matrix(hurst=hurst, times=times)
 
-    rows = cholesky(rows)
+    if not isinstance(cholesky_rows, list) or len(cholesky_rows) != n:
+        cholesky_rows: list[list[float]] = cholesky(rows)
 
-    L = numpy.array(rows)
+    L = numpy.array(cholesky_rows)
     #LT = numpy.transpose(L)
 
     #A0 = L @ LT
@@ -116,14 +112,52 @@ def main(hurst: float, n: int, num_paths: int = 1):
     #pprint(A0)
     u_arr: list = [[]] * num_paths
 
+    current_timestamp = None
+
     for index in range(num_paths):
-        standard_gaussian_vector: list[float] = create_standard_gaussian_vector(n, index < 1)
+        now = datetime.now()
+        ts = int(now.timestamp())
+
+        if current_timestamp != ts:
+            current_timestamp = ts
+            np.random.seed(ts)
+
+        standard_gaussian_vector: list[float] = create_standard_gaussian_vector(n)
 
         v = np.array(standard_gaussian_vector)
 
         u = L @ v
 
         u_arr[index] = u
+
+        print(f"[{index}] {u[0]}")
+
+    msd: list[float] = [0] * len(times)
+
+    index = 0
+
+    h: float = hurst * 2
+
+    for index in range(1, len(times)):
+        t: float = times[index]
+
+        t_msd_sum: float = 0
+
+        for u in u_arr:
+            u0: float = u[0]
+            ui: float = u[index]
+
+            d: float = abs(ui - u0)
+
+            d **= 2
+
+            t_msd_sum += d
+
+        t_msd = t_msd_sum / len(u)
+        th: float = t ** h
+        ratio: float = t_msd / th
+        print(f"[{index}] t={t}, t_msd={t_msd}, th={th}, ratio={ratio}")
+        msd[index] = t_msd
 
     t_arr = np.array(times)
 
@@ -137,15 +171,20 @@ def main(hurst: float, n: int, num_paths: int = 1):
         counter += 1
         ax.plot(t_arr, u, label=f"path {counter}")
 
-    plt.legend(loc="upper left")
+    if num_paths < 10:
+        plt.legend(loc="upper left")
+    
     plt.title("Fractal Brownian Motion Simulation")
     plt.xlabel("Time")
     plt.ylabel("Location")
-    plt.show()
-    #plt.savefig('fractal_brownian_motion_simulation.png', bbox_inches='tight')
+    #plt.show()
+    plt.savefig(f'fractal_brownian_motion_simulation_{hurst}.png', bbox_inches='tight')
     plt.close(fig=fig)
 
-    _ = 0
+    return cholesky_rows
 
+cholesky_rows = None
 
-main(0.5, 1000, 22)
+cholesky_rows = calculate_fbm(hurst=0.5, n=1000, num_paths=25000)
+cholesky_rows = calculate_fbm(hurst=0.25, n=999, num_paths=25000)
+cholesky_rows = calculate_fbm(hurst=0.75, n=999, num_paths=25000)
