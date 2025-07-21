@@ -85,10 +85,11 @@ def create_covariance_matrix(hurst: float, times: list[float]):
 
 
 def create_standard_gaussian_vector(n: int):
-    standard_gaussian_vector: list[float] = [0] * n
+    standard_gaussian_vector: list = [0] * n
 
     for index in range(n):
-        standard_gaussian_vector[index] = np.random.normal(0, 0.0001, 1)
+        arr = np.random.normal(0, 0.0001, 1)
+        standard_gaussian_vector[index] = arr[0]
 
     return standard_gaussian_vector
 
@@ -133,6 +134,7 @@ def calculate_fbm(hurst: float, n: int, num_paths: int = 1, cholesky_rows = None
         print(f"[{index}] {u[0]}")
 
     msd: list[float] = [0] * len(times)
+    msd_ratio: list[float] = [0] * len(times)
 
     index = 0
 
@@ -156,8 +158,9 @@ def calculate_fbm(hurst: float, n: int, num_paths: int = 1, cholesky_rows = None
         t_msd = t_msd_sum / len(u)
         th: float = t ** h
         ratio: float = t_msd / th
-        print(f"[{index}] t={t}, t_msd={t_msd}, th={th}, ratio={ratio}")
         msd[index] = t_msd
+        msd_ratio[index] = ratio
+        print(f"[{index}] t={t}, t_msd={t_msd}, th={th}, ratio={ratio}")
 
     t_arr = np.array(times)
 
@@ -174,17 +177,32 @@ def calculate_fbm(hurst: float, n: int, num_paths: int = 1, cholesky_rows = None
     if num_paths < 10:
         plt.legend(loc="upper left")
     
-    plt.title("Fractal Brownian Motion Simulation")
+    plt.title(f"Fractal Brownian Motion Simulation, Hurst={hurst}")
     plt.xlabel("Time")
     plt.ylabel("Location")
     #plt.show()
     plt.savefig(f'fractal_brownian_motion_simulation_{hurst}.png', bbox_inches='tight')
     plt.close(fig=fig)
 
+    msd_arr = np.array(msd_ratio)
+
+    plt.style.use('ggplot')
+
+    fig, ax = plt.subplots()
+    
+    ax.plot(t_arr, msd_arr, label=f"path {counter}")
+
+    plt.title(f"Fractal Brownian Motion MSD Simulation, Hurst={hurst}")
+    plt.xlabel("Time")
+    plt.ylabel("MSD Ratio")
+    #plt.show()
+    plt.savefig(f'fbm_msd_{hurst}.png', bbox_inches='tight')
+    plt.close(fig=fig)
+
     return cholesky_rows
 
 cholesky_rows = None
 
-cholesky_rows = calculate_fbm(hurst=0.5, n=1000, num_paths=25000)
-cholesky_rows = calculate_fbm(hurst=0.25, n=999, num_paths=25000)
-cholesky_rows = calculate_fbm(hurst=0.75, n=999, num_paths=25000)
+cholesky_rows = calculate_fbm(hurst=0.5, n=1285, num_paths=28500)
+cholesky_rows = calculate_fbm(hurst=0.25, n=1285, num_paths=28500)
+cholesky_rows = calculate_fbm(hurst=0.75, n=1285, num_paths=28500)
