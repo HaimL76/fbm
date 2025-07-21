@@ -131,10 +131,11 @@ def main(hurst: float, n: int, num_paths: int = 1):
 
     fig, ax = plt.subplots()
 
-    counter: int = 1
+    counter: int = 0
 
     for u in u_arr:
-        ax.plot(t_arr, u)#, label=f"simulation {counter}")
+        counter += 1
+        ax.plot(t_arr, u, label=f"path {counter}")
 
     plt.legend(loc="upper left")
     plt.title("Fractal Brownian Motion Simulation")
